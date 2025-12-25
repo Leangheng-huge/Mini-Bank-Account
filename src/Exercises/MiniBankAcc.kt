@@ -1,7 +1,8 @@
 import javax.swing.*
+import javax.swing.text.SimpleAttributeSet
+import javax.swing.text.StyleConstants
+import javax.swing.text.StyledDocument
 import java.awt.*
-
-
 
 open class Acc(
     val accNum: String,
@@ -36,7 +37,6 @@ class CheckingAcc(accNum: String, ownerName: String, balance: Double, private va
     }
 }
 
-
 fun main() {
     val accounts = mutableListOf<Acc>()
 
@@ -45,9 +45,10 @@ fun main() {
     frame.setSize(500, 500)
     frame.layout = FlowLayout()
 
-    val outputArea = JTextArea(20, 40)
+    val outputArea = JTextPane()
     outputArea.isEditable = false
     val scrollPane = JScrollPane(outputArea)
+    scrollPane.setPreferredSize(Dimension(450, 300))
 
     val createBtn = JButton("Create Account")
     val depositBtn = JButton("Deposit")
@@ -60,12 +61,21 @@ fun main() {
     frame.add(showBtn)
     frame.add(scrollPane)
 
+    fun appendColoredText(text: String, color: Color) {
+        val doc: StyledDocument = outputArea.styledDocument
+        val style = SimpleAttributeSet()
+        StyleConstants.setForeground(style, color)
+        doc.insertString(doc.length, "$text\n", style)
+        outputArea.caretPosition = doc.length
+    }
 
     createBtn.addActionListener {
         try {
             val typeOptions = arrayOf("SAVING", "CHECKING")
-            val type = JOptionPane.showInputDialog(frame, "Account Type:", "Create Account",
-                JOptionPane.QUESTION_MESSAGE, null, typeOptions, "SAVING") as String
+            val type = JOptionPane.showInputDialog(
+                frame, "Account Type:", "Create Account",
+                JOptionPane.QUESTION_MESSAGE, null, typeOptions, "SAVING"
+            ) as String
 
             val num = JOptionPane.showInputDialog(frame, "Account Number:")
             val name = JOptionPane.showInputDialog(frame, "Owner Name:")
@@ -78,9 +88,10 @@ fun main() {
             }
 
             accounts.add(acc)
-            outputArea.append("Account Created: $num, Owner: $name\n")
+            val color = if (acc is SavingAcc) Color(0, 128, 0) else Color.BLUE // green for saving, blue for checking
+            appendColoredText("Account Created: $num, Owner: $name (${type.uppercase()})", color)
         } catch (e: Exception) {
-            outputArea.append("Error: ${e.message}\n")
+            appendColoredText("Error: ${e.message}", Color.RED)
         }
     }
 
@@ -88,15 +99,16 @@ fun main() {
         try {
             val num = JOptionPane.showInputDialog(frame, "Account Number:")
             val acc = accounts.find { it.accNum == num } ?: run {
-                outputArea.append("Account not found\n")
+                appendColoredText("Account not found", Color.RED)
                 return@addActionListener
             }
 
             val amount = JOptionPane.showInputDialog(frame, "Deposit Amount:")?.toDouble() ?: 0.0
             acc.deposit(amount)
-            outputArea.append("Deposit successful for $num\n")
+            val color = if (acc is SavingAcc) Color(0, 128, 0) else Color.BLUE
+            appendColoredText("Deposit successful for $num", color)
         } catch (e: Exception) {
-            outputArea.append("Error: ${e.message}\n")
+            appendColoredText("Error: ${e.message}", Color.RED)
         }
     }
 
@@ -104,23 +116,27 @@ fun main() {
         try {
             val num = JOptionPane.showInputDialog(frame, "Account Number:")
             val acc = accounts.find { it.accNum == num } ?: run {
-                outputArea.append("Account not found\n")
+                appendColoredText("Account not found", Color.RED)
                 return@addActionListener
             }
 
             val amount = JOptionPane.showInputDialog(frame, "Withdraw Amount:")?.toDouble() ?: 0.0
             acc.withdraw(amount)
-            outputArea.append("Withdraw successful for $num\n")
+            val color = if (acc is SavingAcc) Color(0, 128, 0) else Color.BLUE
+            appendColoredText("Withdraw successful for $num", color)
         } catch (e: Exception) {
-            outputArea.append("Error: ${e.message}\n")
+            appendColoredText("Error: ${e.message}", Color.RED)
         }
     }
 
     showBtn.addActionListener {
         val num = JOptionPane.showInputDialog(frame, "Account Number:")
         val acc = accounts.find { it.accNum == num }
-        if (acc == null) outputArea.append("Account not found\n")
-        else outputArea.append("Balance for $num: ${acc.getBalance()}\n")
+        if (acc == null) appendColoredText("Account not found", Color.RED)
+        else {
+            val color = if (acc is SavingAcc) Color(0, 128, 0) else Color.BLUE
+            appendColoredText("Balance for $num: ${acc.getBalance()}", color)
+        }
     }
 
     frame.isVisible = true
